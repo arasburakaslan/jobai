@@ -1,0 +1,41 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+namespace JobRag.Api.Controllers;
+
+/// <summary>
+/// Health check endpoint for monitoring and container orchestration.
+/// </summary>
+[ApiController]
+[Route("[controller]")]
+public class HealthController : ControllerBase
+{
+    private readonly HealthCheckService _healthCheckService;
+
+    public HealthController(HealthCheckService healthCheckService)
+    {
+        _healthCheckService = healthCheckService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Get(CancellationToken ct)
+    {
+        var report = await _healthCheckService.CheckHealthAsync(ct);
+
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            }),
+            duration = report.TotalDuration
+        };
+
+        return report.Status == HealthStatus.Healthy
+            ? Ok(result)
+            : StatusCode(503, result);
+    }
+}

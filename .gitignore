@@ -1,0 +1,13 @@
+bin/
+obj/
+.env
+*.user
+*.suo
+.vs/
+*.db
+*.db-journal
+node_modules/
+dist/
+publish/
+appsettings.Development.json
+nul

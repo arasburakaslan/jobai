@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: ankane/pgvector
+    container_name: jobrag_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: jobrag
+      POSTGRES_PASSWORD: jobrag
+      POSTGRES_DB: jobragdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobrag -d jobragdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+    container_name: jobrag_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=jobragdb;Username=jobrag;Password=jobrag
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+    ports:
+      - "5000:8080"
+
+  workers:
+    build:
+      context: .
+      dockerfile: src/Workers/Dockerfile
+    container_name: jobrag_workers
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=jobragdb;Username=jobrag;Password=jobrag
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+
+volumes:
+  pgdata:
